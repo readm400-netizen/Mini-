@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rojgar Point</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root { --primary: #007AFF; --bg: #F2F2F7; --card: #FFFFFF; --text: #000; --text-sub: #8E8E93; --border: #E5E5EA; --success: #34C759; --danger: #FF3B30; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 90px; }
+        
+        /* Login Screen */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .login-box { background: var(--card); padding: 30px; border-radius: 16px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .input-box { width: 100%; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; outline: none; font-size: 1rem; }
+        .btn-full { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+
+        /* UI Elements */
+        .header { background: var(--card); padding: 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 40px; height: 40px; background: #E1E1E6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; }
+        .balance-card { background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3); }
+
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Tasks & Wallet */
+        .task-item { background: var(--card); padding: 15px; border-radius: 12px; display: flex; align-items: center; margin-bottom: 12px; border: 1px solid var(--border); }
+        .task-btn { padding: 8px 16px; background: #eff6ff; color: var(--primary); border: none; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+        .method-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .method-card { flex: 1; background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border); cursor: pointer; }
+        .method-card.selected { border-color: var(--primary); background: #f0f9ff; }
+
+        /* Admin Card Design */
+        .admin-card { background: white; padding: 20px; border-radius: 12px; border-left: 5px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .admin-card h4 { margin-bottom: 15px; color: #333; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 0.5px; }
+        
+        /* Profile & Refer */
+        .setting-list { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .setting-item { padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .ref-area { background: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 15px; word-break: break-all; font-family: monospace; border: 1px dashed #ccc; user-select: all; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000; }
+        .nav-item { text-align: center; color: var(--text-sub); font-size: 0.75rem; width: 20%; cursor: pointer; }
+        .nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; }
+        .nav-item.active { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Rojgar Point</h2>
+            <p style="color: #888; margin-bottom: 20px;">Login to Continue</p>
+            <input type="text" id="login-username" class="input-box" placeholder="@username">
+            <button class="btn-full" onclick="manualLogin()">Login</button>
+        </div>
+    </div>
+
+    <div id="main-app" style="display: none;">
+        
+        <div class="header">
+            <div class="header-top">
+                <div class="user-info">
+                    <div class="avatar" id="u-avatar">U</div>
+                    <div>
+                        <h4 id="u-name">User</h4>
+                        <span style="font-size: 0.8rem; color: var(--text-sub);" id="u-id">ID: ...</span>
+                    </div>
+                </div>
+                <i class="fas fa-cogs" id="admin-btn" style="color: var(--danger); font-size: 1.2rem; cursor: pointer; display: none;" onclick="nav('page-admin', this)"></i>
+            </div>
+            <div class="balance-card">
+                <div>Total Balance</div>
+                <div style="font-size: 2rem; font-weight: 700;">৳<span id="u-balance">0.00</span></div>
+            </div>
+        </div>
+
+        <div id="page-tasks" class="page active">
+            <h3>Available Tasks</h3>
+            <div id="task-list" style="margin-top: 15px;">Loading...</div>
+        </div>
+
+        <div id="page-wallet" class="page">
+            <h3>Withdraw</h3>
+            
+            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; font-size: 0.9rem; color: #0c5460; margin: 15px 0; border: 1px solid #bee5eb;">
+                <i class="fas fa-info-circle"></i> <b>Conditions:</b><br>
+                Minimum Amount: <b id="rule-amt">...</b><br>
+                Required Refers: <b id="rule-ref">...</b>
+            </div>
+
+            <div class="method-group">
+                <div class="method-card" onclick="setMethod('Bkash', this)">Bkash</div>
+                <div class="method-card" onclick="setMethod('Nagad', this)">Nagad</div>
+            </div>
+            <input type="number" id="w-num" class="input-box" placeholder="Account Number">
+            <input type="number" id="w-amt" class="input-box" placeholder="Amount">
+            <button class="btn-full" onclick="requestWithdraw()">Withdraw</button>
+        </div>
+
+        <div id="page-refer" class="page">
+            <div style="text-align: center; background: white; padding: 20px; border-radius: 12px; border: 1px solid #eee;">
+                <i class="fas fa-gift" style="font-size: 3rem; color: var(--primary); margin-bottom: 10px;"></i>
+                <h2>Invite Friends</h2>
+                <p id="ref-bonus-msg" style="color: #888;">Get Bonus!</p>
+                <div class="ref-area" id="ref-link">...</div>
+                <button class="btn-full" onclick="copyRef()">Copy Link</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <div style="flex:1; background: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: bold;" id="ref-count">0</div>
+                    <small>Refers</small>
+                </div>
+                <div style="flex:1; background: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--success);">৳<span id="ref-earn">0</span></div>
+                    <small>Earned</small>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-profile" class="page">
+            <h3 style="margin-bottom: 20px;">Profile</h3>
+            <div class="setting-list">
+                <div class="setting-item" onclick="editName()">
+                    <div style="display: flex; gap: 15px; align-items: center;"><i class="fas fa-user-edit"></i> Edit Name</div>
+                    <i class="fas fa-chevron-right" style="color: #ccc;"></i>
+                </div>
+                <div class="setting-item" onclick="window.open('https://t.me/Rojgar_Point_bot')">
+                    <div style="display: flex; gap: 15px; align-items: center;"><i class="fas fa-headset"></i> Support</div>
+                    <i class="fas fa-external-link-alt" style="color: #ccc;"></i>
+                </div>
+                <div class="setting-item" onclick="logout()">
+                    <div style="display: flex; gap: 15px; align-items: center; color: red;"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-admin" class="page">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Admin Control</h3>
+                <button style="padding: 8px 15px; background: #333; color: white; border: none; border-radius: 5px;" onclick="nav('page-tasks', this)">Close</button>
+            </div>
+
+            <div class="admin-card">
+                <h4><i class="fas fa-sliders-h"></i> Withdrawal Rules</h4>
+                <label style="font-size: 0.8rem; color: #666;">Minimum Amount (৳)</label>
+                <input type="number" id="adm-min-w" class="input-box" placeholder="e.g. 50">
+                
+                <label style="font-size: 0.8rem; color: #666;">Minimum Referrals Required</label>
+                <input type="number" id="adm-min-r" class="input-box" placeholder="e.g. 5">
+                
+                <label style="font-size: 0.8rem; color: #666;">Refer Bonus Per User (৳)</label>
+                <input type="number" id="adm-ref-bonus" class="input-box" placeholder="e.g. 5">
+
+                <button class="btn-full" onclick="saveSettings()">Save Conditions</button>
+            </div>
+
+            <div class="admin-card">
+                <h4><i class="fas fa-plus-circle"></i> Add New Task</h4>
+                <input type="text" id="task-title" class="input-box" placeholder="Task Title">
+                <input type="number" id="task-rew" class="input-box" placeholder="Reward Amount">
+                <input type="text" id="task-link" class="input-box" placeholder="Task Link">
+                <button class="btn-full" style="background: var(--success);" onclick="addTask()">Publish Task</button>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="nav('page-tasks', this)"><i class="fas fa-tasks"></i>Tasks</div>
+            <div class="nav-item" onclick="nav('page-wallet', this)"><i class="fas fa-wallet"></i>Wallet</div>
+            <div class="nav-item" onclick="nav('page-refer', this)"><i class="fas fa-users"></i>Refer</div>
+            <div class="nav-item" onclick="nav('page-profile', this)"><i class="fas fa-user-cog"></i>Profile</div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, update, push, onValue } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAxRuQsi36v3uT-IRXqbls4OBA9PVddqiM",
+            authDomain: "telegram-mini-apps-2cc3c.firebaseapp.com",
+            databaseURL: "https://telegram-mini-apps-2cc3c-default-rtdb.firebaseio.com",
+            projectId: "telegram-mini-apps-2cc3c",
+            storageBucket: "telegram-mini-apps-2cc3c.firebasestorage.app",
+            messagingSenderId: "819238200908",
+            appId: "1:819238200908:web:3f97d8de37d8b46c0936e9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        const ADMIN_ID = "8391024974";
+        const BOT_USERNAME = "Rojgar_Point_bot";
+        const BOT_TOKEN = "8280244541:AAE8SP9L9QzfBXIEBVatzLQdV9nNjpEhcV8";
+
+        let currentUser = null;
+        let globalSettings = { minWithdraw: 50, minRefer: 0, referBonus: 0 }; 
+
+        window.tg = window.Telegram.WebApp;
+        window.tg.expand();
+
+        // --- AUTH ---
+        window.initApp = async function() {
+            if (window.tg.initDataUnsafe && window.tg.initDataUnsafe.user) {
+                const u = window.tg.initDataUnsafe.user;
+                const refBy = window.tg.initDataUnsafe.start_param;
+                await loginUser(u.id.toString(), u.first_name, u.username, refBy);
+            } else {
+                const local = localStorage.getItem('local_uid');
+                if(local) await loginUser(local, 'Web User', local);
+                else document.getElementById('login-screen').style.display = 'flex';
+            }
+        }
+
+        window.manualLogin = async function() {
+            const input = document.getElementById('login-username').value;
+            if(!input) return alert('Enter username');
+            const uid = "web_" + input.replace('@','').toLowerCase();
+            localStorage.setItem('local_uid', uid);
+            await loginUser(uid, input, input);
+        }
+
+        async function loginUser(uid, name, username, refBy) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+
+            const uRef = ref(db, 'users/' + uid);
+            const snap = await get(uRef);
+
+            if(snap.exists()) {
+                currentUser = snap.val();
+            } else {
+                currentUser = { id: uid, name: name, username: username, balance: 0, refCount: 0, refEarn: 0 };
+                
+                // Refer Logic
+                if(refBy && refBy !== uid) {
+                    const rRef = ref(db, 'users/' + refBy);
+                    const rSnap = await get(rRef);
+                    if(rSnap.exists()) {
+                        const sSnap = await get(ref(db, 'settings'));
+                        const bonus = sSnap.exists() ? (sSnap.val().referBonus || 0) : 0;
+                        const rData = rSnap.val();
+                        await update(rRef, {
+                            refCount: (rData.refCount||0) + 1,
+                            refEarn: (rData.refEarn||0) + parseFloat(bonus),
+                            balance: parseFloat(rData.balance) + parseFloat(bonus)
+                        });
+                        sendTelegramMsg(ADMIN_ID, `🚀 *Referral Join*\n${name} joined via ${rData.name}`);
+                    }
+                }
+                sendTelegramMsg(ADMIN_ID, `👤 *New User Joined*\nName: ${name}\nID: \`${uid}\``);
+                await set(uRef, currentUser);
+            }
+
+            updateUI();
+            
+            // Check Admin
+            if(currentUser.id == ADMIN_ID) {
+                document.getElementById('admin-btn').style.display = 'block';
+            }
+
+            loadData();
+        }
+
+        function updateUI() {
+            document.getElementById('u-name').innerText = currentUser.name;
+            document.getElementById('u-id').innerText = "ID: " + currentUser.id;
+            document.getElementById('u-avatar').innerText = currentUser.name.charAt(0);
+            document.getElementById('u-balance').innerText = parseFloat(currentUser.balance).toFixed(2);
+            document.getElementById('ref-link').innerText = `https://t.me/${BOT_USERNAME}?start=${currentUser.id}`;
+            document.getElementById('ref-count').innerText = currentUser.refCount || 0;
+            document.getElementById('ref-earn').innerText = parseFloat(currentUser.refEarn || 0).toFixed(2);
+        }
+
+        // --- DATA LOADERS ---
+        function loadData() {
+            // Settings Sync
+            onValue(ref(db, 'settings'), (snap) => {
+                if(snap.exists()) {
+                    globalSettings = snap.val();
+                    
+                    // Show Rules on Wallet Page
+                    document.getElementById('rule-amt').innerText = `৳${globalSettings.minWithdraw}`;
+                    document.getElementById('rule-ref').innerText = `${globalSettings.minRefer}`;
+                    
+                    document.getElementById('ref-bonus-msg').innerText = `Get ৳${globalSettings.referBonus} per invite!`;
+                    
+                    // Populate Admin Panel
+                    if(currentUser.id == ADMIN_ID) {
+                        document.getElementById('adm-min-w').value = globalSettings.minWithdraw;
+                        document.getElementById('adm-min-r').value = globalSettings.minRefer;
+                        document.getElementById('adm-ref-bonus').value = globalSettings.referBonus;
+                    }
+                }
+            });
+
+            // Tasks
+            onValue(ref(db, 'tasks'), (snap) => {
+                const list = document.getElementById('task-list');
+                list.innerHTML = '';
+                if(snap.exists()) {
+                    const tasks = snap.val();
+                    Object.keys(tasks).forEach(key => {
+                        const t = tasks[key];
+                        list.innerHTML += `
+                        <div class="task-item">
+                            <div style="flex:1;"><b>${t.title}</b><br><small>৳${t.reward}</small></div>
+                            <button class="task-btn" onclick="doTask('${key}', ${t.reward}, '${t.link}')">Start</button>
+                        </div>`;
+                    });
+                } else {
+                    list.innerHTML = "No tasks available.";
+                }
+            });
+        }
+
+        // --- ACTIONS ---
+        window.doTask = async function(tid, rew, link) {
+            window.open(link, '_blank');
+            const newBal = parseFloat(currentUser.balance) + parseFloat(rew);
+            await update(ref(db, 'users/'+currentUser.id), { balance: newBal });
+            currentUser.balance = newBal;
+            updateUI();
+            Swal.fire({toast:true, icon:'success', title:'Reward Added', timer:1500, showConfirmButton:false});
+        }
+
+        let selectedMethod = '';
+        window.setMethod = function(m, el) {
+            selectedMethod = m;
+            document.querySelectorAll('.method-card').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        window.requestWithdraw = async function() {
+            const num = document.getElementById('w-num').value;
+            const amt = parseFloat(document.getElementById('w-amount').value);
+            const userRefs = currentUser.refCount || 0;
+            
+            // 1. Basic Validation
+            if(!selectedMethod) return Swal.fire('Error', 'Select Payment Method', 'error');
+            if(!num || !amt) return Swal.fire('Error', 'Please fill all fields', 'error');
+
+            // 2. Logic Validation (Conditions)
+            if(amt < globalSettings.minWithdraw) {
+                return Swal.fire('Limit Error', `Minimum withdrawal is ৳${globalSettings.minWithdraw}`, 'warning');
+            }
+            if(userRefs < globalSettings.minRefer) {
+                return Swal.fire('Refer Error', `You need minimum ${globalSettings.minRefer} referrals to withdraw! You have ${userRefs}.`, 'error');
+            }
+            if(amt > currentUser.balance) {
+                return Swal.fire('Balance Error', 'Insufficient Balance!', 'error');
+            }
+
+            // 3. Process
+            const reqId = Date.now();
+            await set(ref(db, 'withdraws/'+reqId), {
+                id: reqId, userId: currentUser.id, userName: currentUser.name,
+                method: selectedMethod, number: num, amount: amt, status: 'pending',
+                date: new Date().toLocaleString()
+            });
+
+            await update(ref(db, 'users/'+currentUser.id), { balance: currentUser.balance - amt });
+            currentUser.balance -= amt;
+            updateUI();
+            
+            // 4. Send Message to Admin Telegram
+            const msg = `💸 *Withdraw Request*\n\nUser: ${currentUser.name} (ID: \`${currentUser.id}\`)\nAmount: ৳${amt} (${selectedMethod})\nNumber: \`${num}\`\n\n*Stats:*\nRefers: ${userRefs}\nJoin Date: ${new Date(currentUser.joinedAt || Date.now()).toLocaleDateString()}`;
+            sendTelegramMsg(ADMIN_ID, msg);
+            
+            Swal.fire('Success', 'Request sent to Admin!', 'success');
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        window.saveSettings = async function() {
+            await update(ref(db, 'settings'), {
+                minWithdraw: document.getElementById('adm-min-w').value,
+                minRefer: document.getElementById('adm-min-r').value,
+                referBonus: document.getElementById('adm-ref-bonus').value
+            });
+            Swal.fire('Saved', 'Conditions updated successfully!', 'success');
+        }
+
+        window.addTask = async function() {
+            const title = document.getElementById('task-title').value;
+            const rew = document.getElementById('task-rew').value;
+            const link = document.getElementById('task-link').value;
+            
+            if(!title || !rew) return alert('Fill details');
+
+            const key = push(ref(db, 'tasks')).key;
+            await set(ref(db, 'tasks/'+key), { title, reward: rew, link });
+            alert('Task Published');
+        }
+
+        // --- UTILS ---
+        function sendTelegramMsg(chatId, text) {
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}&parse_mode=Markdown`);
+        }
+
+        window.nav = function(page, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(page).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(el) el.classList.add('active');
+        }
+
+        window.copyRef = function() {
+            const text = document.getElementById('ref-link').innerText;
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                Swal.fire({toast:true, icon:'success', title:'Link Copied!', position:'top', showConfirmButton:false, timer:1500});
+            } catch (err) {
+                alert("Copy failed. Please copy manually.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        window.editName = async function() {
+            const {value:n} = await Swal.fire({title:'Edit Name', input:'text'});
+            if(n) {
+                await update(ref(db, 'users/'+currentUser.id), { name: n });
+                currentUser.name = n; updateUI();
+            }
+        }
+        
+        window.logout = function() {
+            localStorage.removeItem('local_uid');
+            location.reload();
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
